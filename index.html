@@ -18,15 +18,16 @@
   }
   h1 {
     color: #6b2737;
-    font-size: 2rem;
-    margin-bottom: 10px;
+    font-size: clamp(2.8rem, 7vw, 4.5rem) ;
+    margin-bottom: 20px;
     padding: 0 20px;
+    line-height:1.2;
   }
   #subtitle {
     color: #6b2737;
-    margin-bottom: 30px;
-    font-size: 1rem;
-    min-height: 24px;
+    margin-bottom: 40px;
+    font-size: clamp(1.2rem, 3vw, 1.7rem);
+    min-height: 30px;
   }
   .btn-row {
     position: relative;
@@ -36,10 +37,10 @@
     justify-content: center;
   }
   button {
-    padding: 14px 28px;
-    font-size: 1.1rem;
+    padding: 18px 42px;
+    font-size: 1.4rem;
     border: none;
-    border-radius: 12px;
+    border-radius: 16px;
     cursor: pointer;
     font-weight: bold;
     transition: transform 0.15s ease, font-size 0.2s ease;
@@ -54,14 +55,14 @@
     position: relative;
   }
   #emoji {
-    font-size: 4rem;
-    margin-top: 30px;
+    font-size: 7rem;
+    margin-top: 40px;
     display: none;
   }
 </style>
 </head>
 <body>
-
+<div class="card">
 <h1>Frosty, will you be my girlfriend? 💌</h1>
 <div id="subtitle">(Choose wisely, "No" has a mind of its own)</div>
 
@@ -71,6 +72,7 @@
 </div>
 
 <div id="emoji"></div>
+</div>
 
 <script>
   const noBtn = document.getElementById('noBtn');
