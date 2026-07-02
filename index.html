@@ -103,23 +103,28 @@
     const btnWidth = noBtn.offsetWidth || 100;
     const btnHeight = noBtn.offsetHeight || 50;
 
-    // Keep it within a safe central-ish zone: avoid edges and the bottom 15%
-    // (mobile browser bars / thumb zones live there)
-    const marginX = 30;
-    const marginTop = 60;
-    const marginBottom = vh * 0.2;
+    // Safe padding from edges
+    const pad = 16;
 
-    const safeMaxX = Math.max(marginX, vw - btnWidth - marginX);
-    const safeMaxY = Math.max(marginTop, vh - btnHeight - marginBottom);
+    // The button's position range must stay within the viewport.
+    // If the screen is too small for the button + padding on both sides,
+    // just center it on that axis instead of going negative.
+    let minX = pad;
+    let maxX = vw - btnWidth - pad;
+    if (maxX < minX) { minX = maxX = Math.max(0, (vw - btnWidth) / 2); }
 
-    const randX = marginX + Math.random() * (safeMaxX - marginX);
-    const randY = marginTop + Math.random() * (safeMaxY - marginTop);
+    let minY = pad + 50; // keep clear of the heading text near the top
+    let maxY = vh - btnHeight - pad - (vh * 0.1); // avoid bottom 10% (browser bars)
+    if (maxY < minY) { minY = maxY = Math.max(0, (vh - btnHeight) / 2); }
+
+    const randX = minX + Math.random() * (maxX - minX);
+    const randY = minY + Math.random() * (maxY - minY);
 
     noBtn.style.position = 'fixed';
     noBtn.style.margin = '0';
     noBtn.style.zIndex = '1000';
-    noBtn.style.left = randX + 'px';
-    noBtn.style.top = randY + 'px';
+    noBtn.style.left = Math.round(randX) + 'px';
+    noBtn.style.top = Math.round(randY) + 'px';
 
     const newSize = Math.max(0.75, 1 - dodgeCount * 0.03);
     noBtn.style.fontSize = newSize + 'rem';
