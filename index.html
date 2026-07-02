@@ -105,6 +105,7 @@
     font-weight: bold;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), font-size 0.2s ease, box-shadow 0.2s ease;
     box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+    touch-action: manipulation;
   }
   button:active {
     transform: scale(0.94);
@@ -127,7 +128,7 @@
     background: #f44336;
     color: white;
     position: relative;
-    z-index: 3;
+    z-index: 10;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   #emoji {
@@ -176,7 +177,7 @@
 
   <div class="btn-row">
     <button id="yesBtn" onclick="sayYes()">Yes 💚</button>
-    <button id="noBtn" onmouseover="dodge()" onclick="dodge()">No 💔</button>
+    <button id="noBtn">No 💔</button>
   </div>
 
   <div id="emoji"></div>
@@ -232,9 +233,19 @@
 
   let currentX = null;
   let currentY = null;
+  let dodging = false; // guard against double-fire (touch + click / mouseover + click)
 
   function dodge(e) {
     if (e) e.preventDefault();
+
+    // Mobile fires touchstart AND (synthetic) mouseover AND click in quick
+    // succession for the same tap. Without this guard the button hops twice
+    // per tap, and the second hop can easily land outside the clamped
+    // viewport bounds (or behind the text), which reads as "it disappeared."
+    if (dodging) return;
+    dodging = true;
+    setTimeout(() => { dodging = false; }, 250);
+
     dodgeCount++;
 
     const newSize = Math.max(1, 1.6 - dodgeCount * 0.05);
@@ -253,10 +264,15 @@
       noBtn.style.position = 'fixed';
     }
 
+    // Clamp currentX/Y in case the button (or viewport) moved between hops,
+    // e.g. mobile address bar show/hide changing innerHeight.
+    currentX = Math.min(Math.max(currentX, EDGE_MARGIN), maxX);
+    currentY = Math.min(Math.max(currentY, EDGE_MARGIN), maxY);
+
     // Pick a short random hop in a random direction from the current spot,
     // retrying if it would land too close to the Yes button
     const yesRect = yesBtn.getBoundingClientRect();
-    const SAFE_DIST = 140; // minimum px gap to keep from Yes button center
+    const SAFE_DIST = 220; // minimum px gap to keep from Yes button center (accounts for its growth)
 
     let nextX, nextY, attempts = 0;
     do {
@@ -284,7 +300,28 @@
     noBtn.style.bottom = 'auto';
     noBtn.style.margin = '0';
 
-    yesScale = Math.min(2.2, 1 + dodgeCount * 0.1);
+    // Safety net: after applying the position, verify the button actually
+    // landed fully within the visible viewport. If anything went wrong
+    // (NaN, stale rect, etc.) snap it to a guaranteed-safe fallback spot
+    // instead of leaving it somewhere invisible.
+    requestAnimationFrame(() => {
+      const check = noBtn.getBoundingClientRect();
+      const offscreen =
+        !isFinite(check.left) || !isFinite(check.top) ||
+        check.right < 0 || check.bottom < 0 ||
+        check.left > window.innerWidth || check.top > window.innerHeight ||
+        check.width === 0 || check.height === 0;
+      if (offscreen) {
+        const fallbackX = window.innerWidth / 2 - 60;
+        const fallbackY = window.innerHeight * 0.65;
+        currentX = fallbackX;
+        currentY = fallbackY;
+        noBtn.style.left = fallbackX + 'px';
+        noBtn.style.top = fallbackY + 'px';
+      }
+    });
+
+    yesScale = Math.min(1.5, 1 + dodgeCount * 0.05);
     yesBtn.style.transform = `scale(${yesScale})`;
 
     subtitle.textContent = excuses[Math.min(dodgeCount - 1, excuses.length - 1)];
@@ -292,6 +329,11 @@
     void subtitle.offsetWidth; // restart animation
     subtitle.classList.add('shake-text');
   }
+
+  // Single, simple click handler. Click fires reliably and exactly once per
+  // tap on all mobile browsers (unlike pointerenter/mouseover which behave
+  // inconsistently on touch), so this is the most robust approach.
+  noBtn.addEventListener('click', dodge);
 
   // Re-clamp button position if the viewport resizes (e.g. mobile keyboard,
   // orientation change) so it never gets stranded off-screen.
