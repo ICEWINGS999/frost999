@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>A Very Important Question</title>
 <style>
   body {
@@ -67,7 +68,7 @@
 
 <div class="btn-row">
   <button id="yesBtn" onclick="sayYes()">Yes 💚</button>
-  <button id="noBtn" onmouseover="dodge()" onclick="dodge()">No 💔</button>
+  <button id="noBtn" onmouseover="dodge()" onclick="dodge()" ontouchstart="dodge()">No 💔</button>
 </div>
 
 <div id="emoji"></div>
@@ -93,19 +94,26 @@
   let dodgeCount = 0;
   let yesScale = 1;
 
-  function dodge() {
+  function dodge(e) {
+    if (e) e.preventDefault(); // stops touch from also firing a click that could dismiss it
     dodgeCount++;
 
-    const maxX = window.innerWidth - noBtn.offsetWidth - 40;
-    const maxY = window.innerHeight - noBtn.offsetHeight - 40;
+    const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const btnWidth = noBtn.offsetWidth || 100;
+    const btnHeight = noBtn.offsetHeight || 50;
+    const maxX = Math.max(0, vw - btnWidth - 20);
+    const maxY = Math.max(0, vh - btnHeight - 20);
     const randX = Math.random() * maxX;
     const randY = Math.random() * maxY;
 
     noBtn.style.position = 'fixed';
+    noBtn.style.margin = '0';
+    noBtn.style.zIndex = '1000';
     noBtn.style.left = randX + 'px';
     noBtn.style.top = randY + 'px';
 
-    const newSize = Math.max(0.6, 1 - dodgeCount * 0.05);
+    const newSize = Math.max(0.75, 1 - dodgeCount * 0.03);
     noBtn.style.fontSize = newSize + 'rem';
 
     yesScale = Math.min(2.2, 1 + dodgeCount * 0.1);
