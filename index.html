@@ -113,6 +113,8 @@
     background: #4caf50;
     color: white;
     animation: pulseGlow 1.8s ease-in-out infinite;
+    position: relative;
+    z-index: 5;
   }
   #yesBtn:hover {
     box-shadow: 0 8px 20px rgba(76,175,80,0.5);
@@ -125,6 +127,7 @@
     background: #f44336;
     color: white;
     position: relative;
+    z-index: 3;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   #emoji {
@@ -173,7 +176,7 @@
 
   <div class="btn-row">
     <button id="yesBtn" onclick="sayYes()">Yes 💚</button>
-    <button id="noBtn" onmouseover="dodge()" onclick="dodge()" ontouchstart="dodge()">No 💔</button>
+    <button id="noBtn" onmouseover="dodge()" onclick="dodge()">No 💔</button>
   </div>
 
   <div id="emoji"></div>
@@ -225,6 +228,10 @@
   // or immediately after switching to position:fixed (especially on mobile).
   const BTN_MAX_WIDTH = 220;
   const BTN_MAX_HEIGHT = 90;
+  const HOP_DISTANCE = 120; // max px the button moves per dodge — keeps it nearby
+
+  let currentX = null;
+  let currentY = null;
 
   function dodge(e) {
     if (e) e.preventDefault();
@@ -232,19 +239,47 @@
 
     const newSize = Math.max(1, 1.6 - dodgeCount * 0.05);
     noBtn.style.fontSize = newSize + 'rem';
-    noBtn.style.position = 'fixed';
 
     const viewportW = window.innerWidth;
     const viewportH = window.innerHeight;
-
     const maxX = Math.max(EDGE_MARGIN, viewportW - BTN_MAX_WIDTH - EDGE_MARGIN);
     const maxY = Math.max(EDGE_MARGIN, viewportH - BTN_MAX_HEIGHT - EDGE_MARGIN);
 
-    const randX = EDGE_MARGIN + Math.random() * (maxX - EDGE_MARGIN);
-    const randY = EDGE_MARGIN + Math.random() * (maxY - EDGE_MARGIN);
+    if (noBtn.style.position !== 'fixed') {
+      // First dodge: start from the button's actual on-screen position
+      const rect = noBtn.getBoundingClientRect();
+      currentX = rect.left;
+      currentY = rect.top;
+      noBtn.style.position = 'fixed';
+    }
 
-    noBtn.style.left = randX + 'px';
-    noBtn.style.top = randY + 'px';
+    // Pick a short random hop in a random direction from the current spot,
+    // retrying if it would land too close to the Yes button
+    const yesRect = yesBtn.getBoundingClientRect();
+    const SAFE_DIST = 140; // minimum px gap to keep from Yes button center
+
+    let nextX, nextY, attempts = 0;
+    do {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = HOP_DISTANCE * (0.5 + Math.random() * 0.5); // 60–120px
+      nextX = currentX + Math.cos(angle) * distance;
+      nextY = currentY + Math.sin(angle) * distance;
+      nextX = Math.min(Math.max(nextX, EDGE_MARGIN), maxX);
+      nextY = Math.min(Math.max(nextY, EDGE_MARGIN), maxY);
+      attempts++;
+    } while (
+      attempts < 8 &&
+      Math.hypot(
+        (nextX + BTN_MAX_WIDTH / 2) - (yesRect.left + yesRect.width / 2),
+        (nextY + BTN_MAX_HEIGHT / 2) - (yesRect.top + yesRect.height / 2)
+      ) < SAFE_DIST
+    );
+
+    currentX = nextX;
+    currentY = nextY;
+
+    noBtn.style.left = nextX + 'px';
+    noBtn.style.top = nextY + 'px';
     noBtn.style.right = 'auto';
     noBtn.style.bottom = 'auto';
     noBtn.style.margin = '0';
@@ -261,11 +296,11 @@
   // Re-clamp button position if the viewport resizes (e.g. mobile keyboard,
   // orientation change) so it never gets stranded off-screen.
   window.addEventListener('resize', () => {
-    if (noBtn.style.position === 'fixed') {
-      const currentLeft = parseFloat(noBtn.style.left) || 0;
-      const currentTop = parseFloat(noBtn.style.top) || 0;
-      const clampedLeft = Math.min(Math.max(currentLeft, EDGE_MARGIN), window.innerWidth - BTN_MAX_WIDTH - EDGE_MARGIN);
-      const clampedTop = Math.min(Math.max(currentTop, EDGE_MARGIN), window.innerHeight - BTN_MAX_HEIGHT - EDGE_MARGIN);
+    if (noBtn.style.position === 'fixed' && currentX !== null) {
+      const clampedLeft = Math.min(Math.max(currentX, EDGE_MARGIN), window.innerWidth - BTN_MAX_WIDTH - EDGE_MARGIN);
+      const clampedTop = Math.min(Math.max(currentY, EDGE_MARGIN), window.innerHeight - BTN_MAX_HEIGHT - EDGE_MARGIN);
+      currentX = clampedLeft;
+      currentY = clampedTop;
       noBtn.style.left = clampedLeft + 'px';
       noBtn.style.top = clampedTop + 'px';
     }
