@@ -95,17 +95,25 @@
   let yesScale = 1;
 
   function dodge(e) {
-    if (e) e.preventDefault(); // stops touch from also firing a click that could dismiss it
+    if (e) e.preventDefault();
     dodgeCount++;
 
     const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
     const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     const btnWidth = noBtn.offsetWidth || 100;
     const btnHeight = noBtn.offsetHeight || 50;
-    const maxX = Math.max(0, vw - btnWidth - 20);
-    const maxY = Math.max(0, vh - btnHeight - 20);
-    const randX = Math.random() * maxX;
-    const randY = Math.random() * maxY;
+
+    // Keep it within a safe central-ish zone: avoid edges and the bottom 15%
+    // (mobile browser bars / thumb zones live there)
+    const marginX = 30;
+    const marginTop = 60;
+    const marginBottom = vh * 0.2;
+
+    const safeMaxX = Math.max(marginX, vw - btnWidth - marginX);
+    const safeMaxY = Math.max(marginTop, vh - btnHeight - marginBottom);
+
+    const randX = marginX + Math.random() * (safeMaxX - marginX);
+    const randY = marginTop + Math.random() * (safeMaxY - marginTop);
 
     noBtn.style.position = 'fixed';
     noBtn.style.margin = '0';
